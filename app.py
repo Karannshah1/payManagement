@@ -16,7 +16,7 @@ from models import db, seed_defaults
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    CORS(app,origins=["https://pay-management-eight.vercel.app"])
     app.config.from_object(Config)
 
     # Initialize database
