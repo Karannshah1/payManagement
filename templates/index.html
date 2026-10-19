@@ -1,0 +1,157 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Dashboard</h2>
+    <div class="d-flex gap-2">
+        <select id="accountFilter" class="form-select form-select-sm">
+            <option value="all">All Accounts</option>
+        </select>
+        <input type="month" id="monthYearFilter" class="form-control form-control-sm">
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4" id="summaryCards">
+    <div class="col-md-3">
+        <div class="card text-bg-success h-100 shadow-sm">
+            <div class="card-body">
+                <h6 class="card-title">Total Income</h6>
+                <h3 class="mb-0" id="totalIncome">₹0</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-danger h-100 shadow-sm">
+            <div class="card-body">
+                <h6 class="card-title">Total Expenses</h6>
+                <h3 class="mb-0" id="totalExpenses">₹0</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-primary h-100 shadow-sm">
+            <div class="card-body">
+                <h6 class="card-title">Net Savings</h6>
+                <h3 class="mb-0" id="netSavings">₹0</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-bg-warning h-100 shadow-sm">
+            <div class="card-body">
+                <h6 class="card-title">Budget Health</h6>
+                <h3 class="mb-0" id="budgetHealth">0%</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 1 -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-transparent">Category Breakdown</div>
+            <div class="card-body"><canvas id="categoryChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-transparent">Daily Spend Trend</div>
+            <div class="card-body"><canvas id="trendChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row 2 -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-transparent">Monthly Comparison</div>
+            <div class="card-body"><canvas id="monthlyChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-transparent">Payment Methods</div>
+            <div class="card-body"><canvas id="paymentMethodsChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- Cash vs Digital & Balances -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-transparent">Cash vs Digital</div>
+            <div class="card-body"><canvas id="cashVsDigitalChart"></canvas></div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-transparent">Account Balances</div>
+            <div class="card-body" id="accountBalancesContainer">
+                <!-- Populated via JS -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tables Row -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-transparent">Top 5 Expenses</div>
+            <div class="card-body p-0">
+                <table class="table table-hover table-striped mb-0">
+                    <thead><tr><th>Date</th><th>Category</th><th>Amount</th></tr></thead>
+                    <tbody id="topExpensesTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-transparent">Upcoming Bills</div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush" id="upcomingBillsList"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Anomalies Row -->
+<div class="row mb-4" id="anomalyAlertsContainer"></div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadDashboardData() {
+        try {
+            // Mock API Fetch - Replace with real endpoints
+            const response = await fetch('/api/dashboard/summary');
+            if(response.ok) {
+                const data = await response.json();
+                document.getElementById('totalIncome').innerText = `₹${data.totalIncome || 0}`;
+                document.getElementById('totalExpenses').innerText = `₹${data.totalExpenses || 0}`;
+                document.getElementById('netSavings').innerText = `₹${data.netSavings || 0}`;
+                document.getElementById('budgetHealth').innerText = `${data.budgetHealth || 0}%`;
+            }
+
+            // Initialize Dummy Charts for visual completeness
+            new Chart(document.getElementById('categoryChart'), { type: 'doughnut', data: { labels: ['Food', 'Rent'], datasets: [{ data: [300, 500] }] }});
+            new Chart(document.getElementById('trendChart'), { type: 'line', data: { labels: ['1', '2', '3'], datasets: [{ label: 'Spend', data: [50, 200, 150] }] }});
+            new Chart(document.getElementById('monthlyChart'), { type: 'bar', data: { labels: ['Jan', 'Feb'], datasets: [{ label: 'Income', data: [1000, 1200]}, {label: 'Expense', data:[800, 900]}] }});
+            new Chart(document.getElementById('paymentMethodsChart'), { type: 'pie', data: { labels: ['UPI', 'Card', 'Cash'], datasets: [{ data: [60, 30, 10] }] }});
+            new Chart(document.getElementById('cashVsDigitalChart'), { type: 'bar', data: { labels: ['Current Month'], datasets: [{ label: 'Cash', data: [1500]}, {label: 'Digital', data:[8500]}] }});
+            
+        } catch (error) {
+            console.error("Error loading dashboard data:", error);
+            showToast("Failed to load dashboard data.", "error");
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', loadDashboardData);
+</script>
+{% endblock %}

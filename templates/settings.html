@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Settings</h2>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form id="settingsForm" onsubmit="saveSettings(event)">
+                    <h5 class="mb-3">General Preferences</h5>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Currency Symbol</label>
+                        <input type="text" id="setCurrency" class="form-control" value="₹" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Theme</label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="themeMode" id="themeLight" value="light" checked>
+                                <label class="form-check-label" for="themeLight"><i class="bi bi-sun me-1"></i>Light</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="themeMode" id="themeDark" value="dark">
+                                <label class="form-check-label" for="themeDark"><i class="bi bi-moon me-1"></i>Dark</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Fiscal Year Start Month</label>
+                        <select id="setFiscal" class="form-select">
+                            <option value="1">January</option>
+                            <option value="4" selected>April</option>
+                            <option value="7">July</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Default Account</label>
+                        <select id="setDefaultAccount" class="form-select">
+                            <option value="1">HDFC Bank</option>
+                            <option value="2">Cash</option>
+                        </select>
+                    </div>
+
+                    <hr>
+                    <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card shadow-sm border-danger">
+            <div class="card-header bg-transparent border-danger text-danger">Danger Zone</div>
+            <div class="card-body">
+                <p>Export all your data or permanently delete your account.</p>
+                <button class="btn btn-outline-secondary mb-2 w-100"><i class="bi bi-download me-1"></i>Export Data (JSON)</button>
+                <button class="btn btn-outline-danger w-100"><i class="bi bi-trash me-1"></i>Delete All Data</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function saveSettings(e) {
+        e.preventDefault();
+        const payload = {
+            currency: document.getElementById('setCurrency').value,
+            theme: document.querySelector('input[name="themeMode"]:checked').value,
+            fiscalMonth: document.getElementById('setFiscal').value,
+            defaultAccount: document.getElementById('setDefaultAccount').value
+        };
+        try {
+            await fetch('/api/settings', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+            showToast('Settings saved successfully');
+            
+            // Apply theme immediately
+            if(payload.theme === 'dark') {
+                document.documentElement.setAttribute('data-bs-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-bs-theme', 'light');
+            }
+        } catch(err) {
+            showToast('Error saving settings', 'error');
+        }
+    }
+</script>
+{% endblock %}

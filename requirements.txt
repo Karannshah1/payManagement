@@ -1,0 +1,11 @@
+Flask==3.1.1
+Flask-Cors==6.0.5
+Flask-SQLAlchemy==3.1.1
+openpyxl==3.1.5
+pandas==2.3.2
+pypdf==6.14.2
+python-dotenv==1.2.2
+requests==2.34.2
+SQLAlchemy==2.0.41
+gunicorn==21.2.0
+Werkzeug==3.1.3

@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Environment variables (NEVER commit secrets)
+.env
+
+# Database files
+data/*.db
+*.db
+*.sqlite
+
+# Flask instance folder
+instance/
+
+# Uploaded files / receipts
+data/receipts/
+
+# Node modules
+frontend/node_modules/
+
+# Vite build output — don't commit compiled assets
+frontend/dist/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Temp files
+fix_urls.py
+test_groq.py
+models.json

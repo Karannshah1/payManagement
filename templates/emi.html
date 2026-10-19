@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>EMI Tracker</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#emiModal"><i class="bi bi-plus-lg me-1"></i>Add EMI</button>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0">
+            <thead class="table-light"><tr><th>Loan Name</th><th>EMI (₹)</th><th>Tenure</th><th>Completed</th><th>Remaining</th><th>Next Due</th><th>Actions</th></tr></thead>
+            <tbody id="emiTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- EMI Modal -->
+<div class="modal fade" id="emiModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form onsubmit="saveEmi(event)">
+                <div class="modal-header"><h5 class="modal-title">Add EMI</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-3"><label>Loan Name</label><input type="text" class="form-control" required></div>
+                    <div class="mb-3"><label>EMI Amount (₹)</label><input type="number" class="form-control" required></div>
+                    <div class="mb-3"><label>Total Tenure (months)</label><input type="number" class="form-control" required></div>
+                    <div class="mb-3"><label>Interest Rate (%)</label><input type="number" step="0.01" class="form-control"></div>
+                    <div class="mb-3"><label>Start Date</label><input type="date" class="form-control" required></div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-primary">Save</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadEmi() {
+        try {
+            const res = await fetch('/api/emi');
+            if(res.ok) {
+                const data = await res.json();
+                document.getElementById('emiTableBody').innerHTML = data.map(e => `
+                    <tr>
+                        <td><strong>${e.name}</strong><br><small class="text-muted">${e.rate}% interest</small></td>
+                        <td>₹${e.amount}</td>
+                        <td>${e.tenure} mo</td>
+                        <td>
+                            <div class="progress mb-1" style="height: 5px;"><div class="progress-bar" style="width: ${(e.completed/e.tenure)*100}%"></div></div>
+                            ${e.completed} mo
+                        </td>
+                        <td>${e.tenure - e.completed} mo</td>
+                        <td>${e.nextDue}</td>
+                        <td><button class="btn btn-sm btn-success" onclick="payEmi(${e.id})">Pay</button></td>
+                    </tr>
+                `).join('');
+            }
+        } catch(e) {}
+    }
+    async function saveEmi(e) { e.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('emiModal')).hide(); showToast('EMI Added'); }
+    function payEmi(id) { if(confirm('Mark next EMI as paid?')) showToast('EMI Paid'); }
+    document.addEventListener('DOMContentLoaded', loadEmi);
+</script>
+{% endblock %}

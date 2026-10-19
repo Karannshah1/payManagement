@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Reminders</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reminderModal"><i class="bi bi-plus-lg me-1"></i>Add Reminder</button>
+</div>
+
+<div class="card shadow-sm">
+    <table class="table table-hover mb-0">
+        <thead class="table-light"><tr><th>Title</th><th>Amount (₹)</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="remindersTableBody"></tbody>
+    </table>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="reminderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form onsubmit="saveReminder(event)">
+                <div class="modal-header"><h5 class="modal-title">Add Reminder</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-3"><label>Title</label><input type="text" class="form-control" required></div>
+                    <div class="mb-3"><label>Amount (₹)</label><input type="number" class="form-control"></div>
+                    <div class="mb-3"><label>Due Date</label><input type="date" class="form-control" required></div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="isRecurring">
+                        <label class="form-check-label">Is Recurring?</label>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-primary">Save</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadReminders() {
+        try {
+            const res = await fetch('/api/reminders');
+            if(res.ok) {
+                const data = await res.json();
+                document.getElementById('remindersTableBody').innerHTML = data.map(r => {
+                    const isOverdue = new Date(r.dueDate) < new Date();
+                    return `
+                    <tr class="${isOverdue ? 'table-danger' : ''}">
+                        <td>${r.title} ${r.recurring ? '<i class="bi bi-arrow-repeat text-muted"></i>' : ''}</td>
+                        <td>${r.amount ? '₹'+r.amount : '-'}</td>
+                        <td class="${isOverdue ? 'text-danger fw-bold' : ''}">${r.dueDate}</td>
+                        <td><span class="badge bg-${r.status==='Pending' ? (isOverdue ? 'danger' : 'warning') : 'success'}">${r.status}</span></td>
+                        <td>
+                            ${r.status === 'Pending' ? `<button class="btn btn-sm btn-success" onclick="completeReminder(${r.id})"><i class="bi bi-check-lg"></i> Complete</button>` : ''}
+                        </td>
+                    </tr>`;
+                }).join('');
+            }
+        } catch(e){}
+    }
+    async function saveReminder(e) { e.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('reminderModal')).hide(); showToast('Reminder added'); }
+    function completeReminder(id) { showToast('Reminder completed'); }
+    document.addEventListener('DOMContentLoaded', loadReminders);
+</script>
+{% endblock %}

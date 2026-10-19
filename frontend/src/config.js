@@ -1,0 +1,4 @@
+// Central API base URL — change this one line for any environment
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
+export default API_BASE;

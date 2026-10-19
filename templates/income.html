@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Income</h2>
+    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#incomeModal" onclick="resetForm()"><i class="bi bi-plus-lg me-1"></i>Add Income</button>
+</div>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form class="row g-2" id="filterForm">
+            <div class="col-md-3"><select class="form-select form-select-sm" id="filterAccount"><option value="">All Accounts</option></select></div>
+            <div class="col-md-3"><input type="date" class="form-control form-control-sm" id="dateStart"></div>
+            <div class="col-md-3"><input type="date" class="form-control form-control-sm" id="dateEnd"></div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="button" class="btn btn-sm btn-primary w-100" onclick="loadIncome()">Apply Filters</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover table-striped mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Date</th>
+                    <th>Amount (₹)</th>
+                    <th>Source</th>
+                    <th>Account</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="incomeTableBody">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="incomeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="incomeForm" onsubmit="saveIncome(event)">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="incomeModalTitle">Add Income</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="incId">
+                    <div class="mb-3">
+                        <label>Date</label>
+                        <input type="date" id="incDate" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Amount (₹)</label>
+                        <input type="number" id="incAmount" class="form-control" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Source</label>
+                        <input type="text" id="incSource" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Account</label>
+                        <select id="incAccount" class="form-select" required></select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <input type="text" id="incDesc" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadIncome() {
+        try {
+            const res = await fetch('/api/income');
+            if(res.ok) {
+                const data = await res.json();
+                const tbody = document.getElementById('incomeTableBody');
+                tbody.innerHTML = data.map(i => `
+                    <tr>
+                        <td>${i.date}</td>
+                        <td><span class="text-success">₹${i.amount}</span></td>
+                        <td>${i.source}</td>
+                        <td>${i.account}</td>
+                        <td>${i.description}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editIncome(${i.id})"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteIncome(${i.id})"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    async function saveIncome(e) {
+        e.preventDefault();
+        const id = document.getElementById('incId').value;
+        const payload = {
+            date: document.getElementById('incDate').value,
+            amount: document.getElementById('incAmount').value,
+            source: document.getElementById('incSource').value,
+            account: document.getElementById('incAccount').value,
+            description: document.getElementById('incDesc').value
+        };
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/income/${id}` : '/api/income';
+        try {
+            const res = await fetch(url, { method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+            if(res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('incomeModal')).hide();
+                loadIncome();
+                showToast('Income saved successfully');
+            }
+        } catch(err) { showToast('Error saving income', 'error'); }
+    }
+    
+    function resetForm() { document.getElementById('incomeForm').reset(); document.getElementById('incId').value = ''; document.getElementById('incomeModalTitle').innerText = 'Add Income'; }
+    document.addEventListener('DOMContentLoaded', loadIncome);
+</script>
+{% endblock %}

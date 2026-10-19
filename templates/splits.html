@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Split Expenses</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#splitModal"><i class="bi bi-plus-lg me-1"></i>Create Split</button>
+</div>
+
+<div class="row" id="splitsContainer"></div>
+
+<!-- Split Modal -->
+<div class="modal fade" id="splitModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form onsubmit="saveSplit(event)">
+                <div class="modal-header"><h5 class="modal-title">Create Split</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6"><label>Title</label><input type="text" class="form-control" required></div>
+                        <div class="col-md-6"><label>Total Amount (₹)</label><input type="number" class="form-control" required></div>
+                    </div>
+                    <h6>Members</h6>
+                    <div id="membersList">
+                        <div class="row mb-2">
+                            <div class="col-5"><input type="text" class="form-control" placeholder="Name" required></div>
+                            <div class="col-5"><input type="number" class="form-control" placeholder="Share (₹)" required></div>
+                            <div class="col-2"><button type="button" class="btn btn-outline-danger w-100">-</button></div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" onclick="addMemberRow()">+ Add Member</button>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Split</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function addMemberRow() {
+        const div = document.createElement('div');
+        div.className = 'row mb-2';
+        div.innerHTML = `<div class="col-5"><input type="text" class="form-control" placeholder="Name" required></div><div class="col-5"><input type="number" class="form-control" placeholder="Share (₹)" required></div><div class="col-2"><button type="button" class="btn btn-outline-danger w-100" onclick="this.parentElement.parentElement.remove()">-</button></div>`;
+        document.getElementById('membersList').appendChild(div);
+    }
+    
+    async function loadSplits() {
+        try {
+            const res = await fetch('/api/splits');
+            if(res.ok) {
+                const data = await res.json();
+                document.getElementById('splitsContainer').innerHTML = data.map(s => `
+                    <div class="col-md-6 mb-3">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header bg-transparent d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">${s.title}</h5>
+                                <span class="badge bg-${s.settled ? 'success' : 'warning'}">${s.settled ? 'Settled' : 'Pending'}</span>
+                            </div>
+                            <div class="card-body">
+                                <h6>Total: ₹${s.total} <small class="text-muted">on ${s.date}</small></h6>
+                                <table class="table table-sm mt-3">
+                                    <thead><tr><th>Name</th><th>Share</th><th>Paid</th><th>Owes</th></tr></thead>
+                                    <tbody>
+                                        ${s.members.map(m => `<tr><td>${m.name}</td><td>₹${m.share}</td><td>₹${m.paid}</td><td><span class="text-${m.owes>0?'danger':'success'}">₹${m.owes}</span></td></tr>`).join('')}
+                                    </tbody>
+                                </table>
+                                ${!s.settled ? `<button class="btn btn-sm btn-success w-100 mt-2" onclick="settle(${s.id})">Mark as Settled</button>` : ''}
+                            </div>
+                        </div>
+                    </div>`).join('');
+            }
+        } catch(e){}
+    }
+    async function saveSplit(e) { e.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('splitModal')).hide(); showToast('Split created'); }
+    function settle(id) { if(confirm('Settle this split?')) showToast('Settled'); }
+    document.addEventListener('DOMContentLoaded', loadSplits);
+</script>
+{% endblock %}

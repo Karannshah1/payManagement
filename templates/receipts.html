@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Receipt Gallery</h2>
+</div>
+
+<div class="row g-3" id="receiptsContainer">
+    <!-- Populated via JS -->
+</div>
+
+<!-- Modal for full size -->
+<div class="modal fade" id="receiptModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="receiptModalTitle">Receipt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="fullReceiptImg" src="" class="img-fluid rounded" alt="Full Receipt">
+                <div class="mt-3 text-start" id="receiptDetails"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadReceipts() {
+        try {
+            const res = await fetch('/api/receipts');
+            if(res.ok) {
+                const data = await res.json();
+                document.getElementById('receiptsContainer').innerHTML = data.map(r => `
+                    <div class="col-md-3">
+                        <div class="card shadow-sm h-100 receipt-card" style="cursor:pointer;" onclick="viewReceipt('${r.url}', '${r.desc}', '${r.amount}', '${r.date}')">
+                            <img src="${r.url}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Receipt">
+                            <div class="card-body py-2">
+                                <p class="mb-1 text-truncate fw-bold">${r.desc}</p>
+                                <div class="d-flex justify-content-between text-muted small">
+                                    <span>₹${r.amount}</span><span>${r.date}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`).join('');
+            }
+        } catch(e){}
+    }
+
+    function viewReceipt(url, desc, amount, date) {
+        document.getElementById('fullReceiptImg').src = url;
+        document.getElementById('receiptModalTitle').innerText = desc;
+        document.getElementById('receiptDetails').innerHTML = `<strong>Amount:</strong> ₹${amount} <br><strong>Date:</strong> ${date}`;
+        new bootstrap.Modal(document.getElementById('receiptModal')).show();
+    }
+    
+    document.addEventListener('DOMContentLoaded', loadReceipts);
+</script>
+{% endblock %}

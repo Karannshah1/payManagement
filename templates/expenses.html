@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Expenses</h2>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-secondary" onclick="loadTemplates()"><i class="bi bi-card-list me-1"></i>Templates</button>
+        <button class="btn btn-danger" onclick="bulkDelete()"><i class="bi bi-trash me-1"></i>Bulk Delete</button>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#expenseModal" onclick="resetForm()"><i class="bi bi-plus-lg me-1"></i>Add Expense</button>
+    </div>
+</div>
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <form class="row g-2" id="filterForm">
+            <div class="col-md-2"><input type="text" class="form-control form-control-sm" id="search" placeholder="Search description..."></div>
+            <div class="col-md-2"><select class="form-select form-select-sm" id="filterCategory"><option value="">All Categories</option></select></div>
+            <div class="col-md-2"><select class="form-select form-select-sm" id="filterAccount"><option value="">All Accounts</option></select></div>
+            <div class="col-md-2"><select class="form-select form-select-sm" id="filterMethod"><option value="">All Methods</option></select></div>
+            <div class="col-md-2"><input type="date" class="form-control form-control-sm" id="dateStart"></div>
+            <div class="col-md-2"><input type="date" class="form-control form-control-sm" id="dateEnd"></div>
+            <div class="col-12 mt-2">
+                <button type="button" class="btn btn-sm btn-primary" onclick="loadExpenses()">Apply Filters</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('filterForm').reset(); loadExpenses();">Clear</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-hover table-striped mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th><input type="checkbox" class="form-check-input" id="selectAll" onclick="toggleAll(this)"></th>
+                    <th>Date</th>
+                    <th>Amount (₹)</th>
+                    <th>Category</th>
+                    <th>Account</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="expensesTableBody">
+                <!-- Populated via JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal fade" id="expenseModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="expenseForm" onsubmit="saveExpense(event)">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="expenseModalTitle">Add Expense</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="expenseId">
+                    <div class="mb-3">
+                        <label>Date</label>
+                        <input type="date" id="expDate" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Amount (₹)</label>
+                        <input type="number" id="expAmount" class="form-control" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Category</label>
+                        <select id="expCategory" class="form-select" required></select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Account</label>
+                        <select id="expAccount" class="form-select" required></select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Payment Method</label>
+                        <select id="expMethod" class="form-select" required>
+                            <option value="Cash">Cash</option>
+                            <option value="UPI">UPI</option>
+                            <option value="Card">Card</option>
+                            <option value="Net Banking">Net Banking</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label>Description</label>
+                        <input type="text" id="expDesc" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label>Tags</label>
+                        <input type="text" id="expTags" class="form-control" placeholder="comma separated">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadExpenses() {
+        try {
+            const res = await fetch('/api/expenses');
+            if(res.ok) {
+                const data = await res.json();
+                const tbody = document.getElementById('expensesTableBody');
+                tbody.innerHTML = data.map(e => `
+                    <tr>
+                        <td><input type="checkbox" class="form-check-input row-checkbox" value="${e.id}"></td>
+                        <td>${e.date}</td>
+                        <td>₹${e.amount}</td>
+                        <td><span class="badge bg-secondary">${e.category}</span></td>
+                        <td>${e.account}</td>
+                        <td>${e.method === 'Cash' ? '💵 ' : ''}${e.method}</td>
+                        <td>${e.description}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="editExpense(${e.id})"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteExpense(${e.id})"><i class="bi bi-trash"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    async function saveExpense(e) {
+        e.preventDefault();
+        const id = document.getElementById('expenseId').value;
+        const payload = {
+            date: document.getElementById('expDate').value,
+            amount: document.getElementById('expAmount').value,
+            category: document.getElementById('expCategory').value,
+            account: document.getElementById('expAccount').value,
+            method: document.getElementById('expMethod').value,
+            description: document.getElementById('expDesc').value
+        };
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/expenses/${id}` : '/api/expenses';
+        try {
+            const res = await fetch(url, {
+                method, headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+            });
+            if(res.ok) {
+                bootstrap.Modal.getInstance(document.getElementById('expenseModal')).hide();
+                loadExpenses();
+                showToast('Expense saved successfully');
+            }
+        } catch(err) {
+            showToast('Error saving expense', 'error');
+        }
+    }
+
+    function toggleAll(source) {
+        document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = source.checked);
+    }
+    
+    function resetForm() { document.getElementById('expenseForm').reset(); document.getElementById('expenseId').value = ''; document.getElementById('expenseModalTitle').innerText = 'Add Expense'; }
+    
+    document.addEventListener('DOMContentLoaded', loadExpenses);
+</script>
+{% endblock %}

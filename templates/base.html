@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayManagement</title>
+    <!-- Bootstrap 5.3 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { display: flex; min-height: 100vh; overflow-x: hidden; }
+        .sidebar { 
+            width: 260px; 
+            background-color: var(--bs-dark); 
+            color: white; 
+            flex-shrink: 0; 
+            transition: all 0.3s ease; 
+            overflow: hidden;
+            white-space: nowrap;
+        }
+        .sidebar .nav-link { 
+            color: #adb5bd; 
+            padding: 0.8rem 1rem; 
+            border-radius: 0.25rem; 
+            margin-bottom: 0.2rem;
+            display: flex;
+            align-items: center;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active { color: #fff; background-color: #0d6efd; }
+        .sidebar .nav-link i { font-size: 1.2rem; min-width: 30px; text-align: left; }
+        
+        .main-content { 
+            flex-grow: 1; 
+            padding: 1.5rem; 
+            width: calc(100% - 260px);
+            background-color: var(--bs-body-bg); 
+            transition: all 0.3s ease; 
+        }
+
+        /* Desktop Collapsed State */
+        .sidebar.collapsed { width: 75px; }
+        .sidebar.collapsed .nav-text { opacity: 0; display: none; }
+        .sidebar.collapsed .brand-text { display: none; }
+        .sidebar.collapsed .nav-link { justify-content: center; padding: 0.8rem 0; }
+        .sidebar.collapsed .nav-link i { margin-right: 0 !important; text-align: center; min-width: auto; }
+        .sidebar.collapsed .sidebar-header { justify-content: center !important; }
+        
+        /* Expand main content when sidebar collapses */
+        body:has(.sidebar.collapsed) .main-content {
+            width: calc(100% - 75px);
+        }
+
+        @media (max-width: 768px) {
+            .sidebar { position: fixed; top: 0; left: 0; height: 100vh; z-index: 1040; transform: translateX(-100%); width: 260px; }
+            .sidebar.show { transform: translateX(0); }
+            .sidebar.collapsed { width: 260px; } /* Disable collapse on mobile */
+            .sidebar.collapsed .nav-text, .sidebar.collapsed .brand-text { display: inline-block; opacity: 1; }
+            .main-content { width: 100%; margin-left: 0; }
+            body:has(.sidebar.collapsed) .main-content { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar p-3 d-flex flex-column" id="sidebar">
+        <div class="sidebar-header d-flex align-items-center justify-content-between mb-4 mt-2 px-1">
+            <h4 class="m-0 d-flex align-items-center">
+                <i class="bi bi-wallet2 me-3"></i>
+                <span class="brand-text">PayManagement</span>
+            </h4>
+            <button class="btn btn-close btn-close-white d-md-none" id="closeSidebar"></button>
+        </div>
+        <ul class="nav nav-pills flex-column mb-auto mt-2">
+            <li class="nav-item"><a href="/" class="nav-link"><i class="bi bi-speedometer2 me-3"></i><span class="nav-text">Dashboard</span></a></li>
+            <li><a href="/expenses/" class="nav-link"><i class="bi bi-receipt me-3"></i><span class="nav-text">Expenses</span></a></li>
+            <li><a href="/income/" class="nav-link"><i class="bi bi-cash-coin me-3"></i><span class="nav-text">Income</span></a></li>
+            <li><a href="/accounts/" class="nav-link"><i class="bi bi-bank me-3"></i><span class="nav-text">Accounts</span></a></li>
+            <li><a href="/budgets/" class="nav-link"><i class="bi bi-pie-chart me-3"></i><span class="nav-text">Budgets</span></a></li>
+            <li><a href="/goals/" class="nav-link"><i class="bi bi-trophy me-3"></i><span class="nav-text">Goals</span></a></li>
+            <li><a href="/emi/" class="nav-link"><i class="bi bi-calculator me-3"></i><span class="nav-text">EMI Tracker</span></a></li>
+            <li><a href="/splits/" class="nav-link"><i class="bi bi-people me-3"></i><span class="nav-text">Split Expenses</span></a></li>
+            <li><a href="/subscriptions/" class="nav-link"><i class="bi bi-repeat me-3"></i><span class="nav-text">Subscriptions</span></a></li>
+            <li><a href="/reminders/" class="nav-link"><i class="bi bi-bell me-3"></i><span class="nav-text">Reminders</span></a></li>
+            <li><a href="/analytics/" class="nav-link"><i class="bi bi-graph-up me-3"></i><span class="nav-text">Analytics</span></a></li>
+            <li><a href="/import/" class="nav-link"><i class="bi bi-cloud-upload me-3"></i><span class="nav-text">Smart Import</span></a></li>
+            <li><a href="/reports/" class="nav-link"><i class="bi bi-file-earmark-bar-graph me-3"></i><span class="nav-text">Reports</span></a></li>
+            <li><a href="/settings/" class="nav-link"><i class="bi bi-gear me-3"></i><span class="nav-text">Settings</span></a></li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content d-flex flex-column" id="mainContent">
+        <!-- Top Navbar -->
+        <nav class="navbar navbar-expand-lg mb-4 rounded shadow-sm" style="background-color: var(--bs-tertiary-bg);">
+            <div class="container-fluid">
+                <!-- Hamburger menu -->
+                <button class="btn btn-primary me-3" id="toggleSidebar">
+                    <i class="bi bi-list fs-5 text-white"></i>
+                </button>
+                <form class="d-flex me-auto">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lightning-charge"></i></span>
+                        <input class="form-control" type="text" placeholder="Quick Add (e.g. 500 food cash)" aria-label="Quick Add">
+                    </div>
+                </form>
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-outline-secondary rounded-circle" id="themeToggle" title="Toggle Theme">
+                        <i class="bi bi-moon-stars"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Flash Messages -->
+        <div id="toastContainer" class="toast-container position-fixed top-0 end-0 p-3">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="toast align-items-center text-bg-{{ category if category != 'error' else 'danger' }} border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true">
+                            <div class="d-flex">
+                                <div class="toast-body">{{ message }}</div>
+                                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Content Block -->
+        <div class="flex-grow-1">
+            {% block content %}{% endblock %}
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-auto py-3 text-center text-muted">
+            <small>&copy; 2026 PayManagement. All rights reserved.</small>
+        </footer>
+    </div>
+
+    <!-- Bootstrap 5.3 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js 4 -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <script>
+        // Sidebar Toggle Logic
+        document.getElementById('toggleSidebar').addEventListener('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            if (window.innerWidth <= 768) {
+                // Mobile behavior: slide in drawer
+                sidebar.classList.add('show');
+            } else {
+                // Desktop behavior: collapse width
+                sidebar.classList.toggle('collapsed');
+                // Persist state
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('sidebarCollapsed', isCollapsed);
+            }
+        });
+
+        // Close sidebar on mobile
+        document.getElementById('closeSidebar').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.remove('show');
+        });
+
+        // Apply saved sidebar state on load
+        if (window.innerWidth > 768 && localStorage.getItem('sidebarCollapsed') === 'true') {
+            document.getElementById('sidebar').classList.add('collapsed');
+        }
+
+        // Theme Toggle
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-bs-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-bs-theme', newTheme);
+            const icon = document.querySelector('#themeToggle i');
+            icon.className = newTheme === 'dark' ? 'bi bi-sun' : 'bi bi-moon-stars';
+            localStorage.setItem('theme', newTheme);
+        });
+
+        // Apply saved theme on load
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+            const icon = document.querySelector('#themeToggle i');
+            icon.className = savedTheme === 'dark' ? 'bi bi-sun' : 'bi bi-moon-stars';
+        }
+
+        // Active Link Highlighting
+        const path = window.location.pathname;
+        document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+            if (link.getAttribute('href') === path || (path !== '/' && link.getAttribute('href').startsWith(path))) {
+                link.classList.add('active');
+            }
+        });
+
+        // Initialize Toasts
+        document.querySelectorAll('.toast').forEach(t => new bootstrap.Toast(t).show());
+
+        function showToast(message, type='success') {
+            const container = document.getElementById('toastContainer');
+            const toastEl = document.createElement('div');
+            const bgClass = type === 'error' ? 'danger' : type;
+            toastEl.className = `toast align-items-center text-bg-${bgClass} border-0 mb-2`;
+            toastEl.setAttribute('role', 'alert');
+            toastEl.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            container.appendChild(toastEl);
+            const toast = new bootstrap.Toast(toastEl, { autohide: true });
+            toast.show();
+            toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+        }
+    </script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

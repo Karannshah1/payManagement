@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Goals</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#goalModal"><i class="bi bi-plus-lg me-1"></i>Add Goal</button>
+</div>
+
+<div class="row" id="goalsContainer">
+    <!-- Populated via JS -->
+</div>
+
+<!-- Add Goal Modal -->
+<div class="modal fade" id="goalModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="goalForm" onsubmit="saveGoal(event)">
+                <div class="modal-header"><h5 class="modal-title">Add Goal</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-3"><label>Goal Name</label><input type="text" id="goalName" class="form-control" required></div>
+                    <div class="mb-3"><label>Target Amount (₹)</label><input type="number" id="goalTarget" class="form-control" required></div>
+                    <div class="mb-3"><label>Target Date</label><input type="date" id="goalDate" class="form-control" required></div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Goal</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Contribute Modal -->
+<div class="modal fade" id="contributeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form onsubmit="saveContribution(event)">
+                <div class="modal-header"><h5 class="modal-title">Contribute to Goal</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="contributeGoalId">
+                    <div class="mb-3"><label>Amount to Add (₹)</label><input type="number" id="contributeAmount" class="form-control" required></div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-success">Contribute</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadGoals() {
+        try {
+            const res = await fetch('/api/goals');
+            if(res.ok) {
+                const data = await res.json();
+                document.getElementById('goalsContainer').innerHTML = data.map(g => {
+                    const pct = Math.min((g.current / g.target) * 100, 100).toFixed(1);
+                    return `
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <h5>${g.name}</h5>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>₹${g.current} / ₹${g.target}</span>
+                                    <span>${pct}%</span>
+                                </div>
+                                <div class="progress mb-3"><div class="progress-bar bg-info" style="width: ${pct}%"></div></div>
+                                <p class="text-muted small"><i class="bi bi-calendar me-1"></i>Target: ${g.date} (${g.daysRemaining} days left)</p>
+                                <button class="btn btn-sm btn-outline-success w-100" onclick="contribute(${g.id})">Contribute</button>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        } catch(e) {}
+    }
+
+    function contribute(id) {
+        document.getElementById('contributeGoalId').value = id;
+        new bootstrap.Modal(document.getElementById('contributeModal')).show();
+    }
+
+    async function saveGoal(e) { e.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('goalModal')).hide(); showToast('Goal added'); loadGoals(); }
+    async function saveContribution(e) { e.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('contributeModal')).hide(); showToast('Contribution added'); loadGoals(); }
+    
+    document.addEventListener('DOMContentLoaded', loadGoals);
+</script>
+{% endblock %}

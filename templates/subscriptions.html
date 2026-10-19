@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Subscriptions</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#subModal"><i class="bi bi-plus-lg me-1"></i>Add Subscription</button>
+</div>
+
+<div class="alert alert-info shadow-sm">
+    <i class="bi bi-info-circle me-2"></i>Total Monthly Cost: <strong id="totalSubCost">₹0</strong>
+</div>
+
+<div class="row" id="subsContainer"></div>
+
+<!-- Sub Modal -->
+<div class="modal fade" id="subModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form onsubmit="saveSub(event)">
+                <div class="modal-header"><h5 class="modal-title">Add Subscription</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-3"><label>Name</label><input type="text" class="form-control" required></div>
+                    <div class="mb-3"><label>Amount (₹)</label><input type="number" class="form-control" required></div>
+                    <div class="mb-3"><label>Billing Cycle</label><select class="form-select"><option>Monthly</option><option>Yearly</option></select></div>
+                    <div class="mb-3"><label>Next Renewal</label><input type="date" class="form-control" required></div>
+                    <div class="mb-3"><label>Category</label><input type="text" class="form-control"></div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-primary">Save</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadSubs() {
+        try {
+            const res = await fetch('/api/subscriptions');
+            if(res.ok) {
+                const data = await res.json();
+                let total = 0;
+                document.getElementById('subsContainer').innerHTML = data.map(s => {
+                    if(s.active) total += (s.cycle === 'Monthly' ? s.amount : s.amount/12);
+                    return `
+                    <div class="col-md-4 mb-3">
+                        <div class="card shadow-sm h-100 ${!s.active ? 'opacity-50' : ''}">
+                            <div class="card-body text-center">
+                                <h5>${s.name}</h5>
+                                <h3 class="my-3">₹${s.amount} <small class="text-muted fs-6">/${s.cycle}</small></h3>
+                                <p class="mb-1 text-muted">Next: ${s.nextRenewal}</p>
+                                <span class="badge bg-${s.active ? 'success' : 'secondary'} mb-3">${s.active ? 'Active' : 'Inactive'}</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-${s.active ? 'danger' : 'success'}" onclick="toggleSub(${s.id})">${s.active ? 'Cancel' : 'Reactivate'}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+                document.getElementById('totalSubCost').innerText = `₹${total.toFixed(2)}`;
+            }
+        } catch(e){}
+    }
+    async function saveSub(e) { e.preventDefault(); bootstrap.Modal.getInstance(document.getElementById('subModal')).hide(); showToast('Subscription added'); }
+    function toggleSub(id) { showToast('Status changed'); }
+    document.addEventListener('DOMContentLoaded', loadSubs);
+</script>
+{% endblock %}

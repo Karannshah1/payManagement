@@ -1,0 +1,32 @@
+services:
+  # ── Flask Backend ──────────────────────────────────────────────
+  - type: web
+    name: paymanagement-api
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GROQ_API_KEY
+        sync: false      # Set this manually in Render dashboard
+      - key: GOOGLE_API_KEY
+        sync: false      # Set this manually in Render dashboard
+      - key: OPENROUTER_API_KEY
+        sync: false      # Set this manually in Render dashboard
+
+  # ── React Frontend (static site) ──────────────────────────────
+  - type: web
+    name: paymanagement-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        sync: false      # Set to your backend URL: https://paymanagement-api.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

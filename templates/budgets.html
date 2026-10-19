@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Budgets</h2>
+    <input type="month" id="budgetMonth" class="form-control w-auto">
+</div>
+
+<div class="card shadow-sm mb-4 text-center">
+    <div class="card-body">
+        <h5>Total Budgeted vs Spent</h5>
+        <h3 id="budgetSummary">₹0 / ₹0</h3>
+        <div class="progress mt-3" style="height: 20px;">
+            <div id="totalProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%;">0%</div>
+        </div>
+    </div>
+</div>
+
+<div class="row" id="budgetsContainer">
+    <!-- Populated via JS -->
+</div>
+
+<!-- Set Budget Modal -->
+<div class="modal fade" id="budgetModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="budgetForm" onsubmit="saveBudget(event)">
+                <div class="modal-header"><h5 class="modal-title">Set Category Budget</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <input type="hidden" id="budgetId">
+                    <div class="mb-3"><label>Category</label><select id="budgCategory" class="form-select" required></select></div>
+                    <div class="mb-3"><label>Budget Limit (₹)</label><input type="number" id="budgLimit" class="form-control" required></div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn btn-primary">Save Budget</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    async function loadBudgets() {
+        try {
+            const res = await fetch('/api/budgets');
+            if(res.ok) {
+                const data = await res.json();
+                const container = document.getElementById('budgetsContainer');
+                container.innerHTML = data.map(b => {
+                    const percent = Math.min((b.actual / b.limit) * 100, 100).toFixed(1);
+                    const color = percent < 80 ? 'bg-success' : (percent < 100 ? 'bg-warning' : 'bg-danger');
+                    return `
+                    <div class="col-md-6 mb-3">
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <h5 class="mb-0">${b.category}</h5>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="editBudget(${b.id}, '${b.category}', ${b.limit})">Set Limit</button>
+                                </div>
+                                <p class="text-muted small mb-1">₹${b.actual} spent of ₹${b.limit} limit</p>
+                                <div class="progress" style="height: 15px;">
+                                    <div class="progress-bar ${color}" role="progressbar" style="width: ${percent}%;">${percent}%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    function editBudget(id, cat, limit) {
+        document.getElementById('budgetId').value = id || '';
+        document.getElementById('budgCategory').innerHTML = `<option value="${cat}">${cat}</option>`; // mock
+        document.getElementById('budgLimit').value = limit;
+        new bootstrap.Modal(document.getElementById('budgetModal')).show();
+    }
+
+    async function saveBudget(e) {
+        e.preventDefault();
+        // save via API
+        bootstrap.Modal.getInstance(document.getElementById('budgetModal')).hide();
+        loadBudgets(); showToast('Budget updated');
+    }
+
+    document.addEventListener('DOMContentLoaded', loadBudgets);
+</script>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Reports</h2>
+</div>
+
+<div class="row">
+    <!-- Monthly Summary -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-transparent"><h5 class="mb-0"><i class="bi bi-calendar-month me-2"></i>Monthly Summary</h5></div>
+            <div class="card-body">
+                <input type="month" id="repMonth" class="form-control mb-3">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" onclick="generateReport('monthly')">Generate</button>
+                    <button class="btn btn-outline-danger"><i class="bi bi-file-pdf me-1"></i>PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tax Report -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-header bg-transparent"><h5 class="mb-0"><i class="bi bi-file-text me-2"></i>Tax Report</h5></div>
+            <div class="card-body">
+                <input type="number" id="repTaxYear" class="form-control mb-3" placeholder="Year (e.g. 2026)" value="2026">
+                <p class="text-muted small">* Excludes cash transactions automatically</p>
+                <button class="btn btn-primary" onclick="generateReport('tax')">Generate</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Report -->
+    <div class="col-md-12 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-transparent"><h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Custom Report</h5></div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-3"><input type="date" class="form-control" id="custStart"></div>
+                    <div class="col-md-3"><input type="date" class="form-control" id="custEnd"></div>
+                    <div class="col-md-3"><select class="form-select"><option>All Categories</option></select></div>
+                    <div class="col-md-3"><select class="form-select"><option>All Accounts</option></select></div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-primary" onclick="generateReport('custom')">Generate</button>
+                    <button class="btn btn-outline-success"><i class="bi bi-file-excel me-1"></i>Excel</button>
+                    <button class="btn btn-outline-secondary">CSV</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Results Area -->
+<div class="card shadow-sm d-none" id="reportResults">
+    <div class="card-header bg-transparent"><h5 class="mb-0">Report Results</h5></div>
+    <div class="card-body" id="reportData">
+        <!-- Rendered via JS -->
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function generateReport(type) {
+        const results = document.getElementById('reportResults');
+        results.classList.remove('d-none');
+        document.getElementById('reportData').innerHTML = `<div class="text-center p-4"><div class="spinner-border text-primary"></div><p class="mt-2">Generating ${type} report...</p></div>`;
+        
+        setTimeout(() => {
+            document.getElementById('reportData').innerHTML = `<div class="alert alert-success">Report generated successfully! (Mock data preview)</div>
+            <table class="table table-sm"><thead><tr><th>Category</th><th>Amount</th></tr></thead><tbody><tr><td>Food</td><td>₹5000</td></tr><tr><td>Transport</td><td>₹2000</td></tr></tbody></table>`;
+        }, 1000);
+    }
+</script>
+{% endblock %}
