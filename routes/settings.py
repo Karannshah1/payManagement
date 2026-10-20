@@ -33,3 +33,15 @@ def save_settings():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+@settings_bp.route('/api/settings/supabase-status', methods=['GET'])
+def supabase_status():
+    from services.supabase_client import test_supabase_connection
+    from config import Config
+    supabase_info = test_supabase_connection()
+    is_postgres = Config.SQLALCHEMY_DATABASE_URI.startswith('postgresql')
+    return jsonify({
+        'supabase': supabase_info,
+        'database_backend': 'PostgreSQL (Supabase/Cloud)' if is_postgres else 'SQLite (Local)',
+        'database_uri_configured': bool(Config.SQLALCHEMY_DATABASE_URI)
+    })

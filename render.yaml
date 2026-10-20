@@ -10,12 +10,22 @@ services:
         value: production
       - key: SECRET_KEY
         generateValue: true
+      - key: DATABASE_URL
+        sync: false      # Supabase connection string
+      - key: SUPABASE_URL
+        sync: false      # Set in Render dashboard
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false      # Set in Render dashboard
+      - key: SUPABASE_SECRET_KEY
+        sync: false      # Set in Render dashboard
+      - key: SUPABASE_JWKS_URL
+        sync: false      # Set in Render dashboard
       - key: GROQ_API_KEY
-        sync: false      # Set this manually in Render dashboard
+        sync: false      # Set in Render dashboard
       - key: GOOGLE_API_KEY
-        sync: false      # Set this manually in Render dashboard
+        sync: false      # Set in Render dashboard
       - key: OPENROUTER_API_KEY
-        sync: false      # Set this manually in Render dashboard
+        sync: false      # Set in Render dashboard
 
   # ── React Frontend (static site) ──────────────────────────────
   - type: web
@@ -26,6 +36,10 @@ services:
     envVars:
       - key: VITE_API_BASE_URL
         sync: false      # Set to your backend URL: https://paymanagement-api.onrender.com
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
     routes:
       - type: rewrite
         source: /*

@@ -16,7 +16,13 @@ from models import db, seed_defaults
 
 def create_app():
     app = Flask(__name__)
-    CORS(app,origins=["https://pay-management-eight.vercel.app"])
+    allowed_origins = [
+        "https://pay-management-eight.vercel.app",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000"
+    ]
+    CORS(app, resources={r"/*": {"origins": allowed_origins}}, supports_credentials=True)
     app.config.from_object(Config)
 
     # Initialize database
