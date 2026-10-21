@@ -46,15 +46,15 @@ const Layout = ({ children }) => {
   return (
     <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans transition-colors duration-200">
       {/* Sidebar */}
-      <aside className={`bg-white dark:bg-gray-800 shadow-md transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-0 -translate-x-full md:w-20 md:translate-x-0'} fixed md:relative z-20 h-full flex flex-col overflow-hidden`}>
-        <div className="h-16 flex items-center justify-center border-b dark:border-gray-700">
+      <aside className={`bg-white dark:bg-gray-800 shadow-md transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-0 -translate-x-full md:w-20 md:translate-x-0'} fixed md:relative z-20 h-full flex flex-col`}>
+        <div className="h-16 flex-shrink-0 flex items-center justify-center border-b dark:border-gray-700">
           <span className={`text-xl font-bold whitespace-nowrap text-indigo-600 dark:text-indigo-400 ${!isSidebarOpen && 'md:hidden'}`}>
             PayManagement
           </span>
           {(!isSidebarOpen) && <span className="hidden md:block text-xl font-bold text-indigo-600 dark:text-indigo-400">PM</span>}
         </div>
-        <nav className="flex-1 py-4">
-          <ul className="space-y-2 px-2">
+        <nav className="flex-1 py-4 overflow-y-auto overflow-x-hidden">
+          <ul className="space-y-2 px-2 pb-6">
             {navLinks.map((link) => {
               const isActive = location.pathname === link.path;
               return (
