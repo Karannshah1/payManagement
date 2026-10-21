@@ -8,7 +8,8 @@ Run with: python app.py
 Open: http://localhost:5000
 """
 
-from flask import Flask
+import re
+from flask import Flask, jsonify
 from flask_cors import CORS
 from config import Config
 from models import db, seed_defaults
@@ -17,6 +18,7 @@ from models import db, seed_defaults
 def create_app():
     app = Flask(__name__)
     allowed_origins = [
+        re.compile(r'https://.*\.vercel\.app'),
         "https://pay-management-eight.vercel.app",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
@@ -24,6 +26,11 @@ def create_app():
     ]
     CORS(app, resources={r"/*": {"origins": allowed_origins}}, supports_credentials=True)
     app.config.from_object(Config)
+
+    # Health check endpoint for Render/hosting platforms
+    @app.route('/health', methods=['GET'])
+    def health_check():
+        return jsonify({"status": "ok", "app": "PayManagement API"}), 200
 
     # Initialize database
     db.init_app(app)
