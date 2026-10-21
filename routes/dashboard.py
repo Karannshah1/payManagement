@@ -58,12 +58,26 @@ def get_summary():
         budgets = db.session.query(func.sum(Budget.limit_amount)).filter(Budget.month == month, Budget.year == year).scalar() or 0
         budget_used_percent = (total_expenses / budgets * 100) if budgets > 0 else 0
         
+        health_status = 'Good'
+        if budgets > 0:
+            if budget_used_percent >= 100:
+                health_status = 'Exceeded'
+            elif budget_used_percent >= 80:
+                health_status = 'Warning'
+            else:
+                health_status = f"{round(budget_used_percent)}% Used"
+
         return jsonify({
             'total_income': total_income,
+            'totalIncome': total_income,
             'total_expenses': total_expenses,
+            'totalExpenses': total_expenses,
             'net_savings': net_savings,
+            'netSavings': net_savings,
             'budget_used_percent': round(budget_used_percent, 2),
-            'transaction_count': transaction_count
+            'budgetHealth': health_status,
+            'transaction_count': transaction_count,
+            'transactionCount': transaction_count
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -85,9 +99,11 @@ def category_breakdown():
         results = q.group_by(Category.id).all()
         
         return jsonify([{
+            'name': r[0],
+            'value': float(r[2] or 0),
             'category_name': r[0],
             'category_color': r[1],
-            'total': r[2]
+            'total': float(r[2] or 0)
         } for r in results])
     except Exception as e:
         return jsonify({'error': str(e)}), 500

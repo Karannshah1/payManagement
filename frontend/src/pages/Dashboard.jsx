@@ -81,7 +81,7 @@ const Dashboard = () => {
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Total Income</p>
               <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                ₹{summary?.totalIncome?.toLocaleString('en-IN') || 0}
+                ₹{(summary?.totalIncome ?? summary?.total_income ?? 0).toLocaleString('en-IN')}
               </h3>
             </div>
             <div className="p-3 bg-green-50 rounded-full text-green-500">
@@ -93,7 +93,7 @@ const Dashboard = () => {
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Total Expenses</p>
               <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                ₹{summary?.totalExpenses?.toLocaleString('en-IN') || 0}
+                ₹{(summary?.totalExpenses ?? summary?.total_expenses ?? 0).toLocaleString('en-IN')}
               </h3>
             </div>
             <div className="p-3 bg-red-50 rounded-full text-red-500">
@@ -105,7 +105,7 @@ const Dashboard = () => {
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Net Savings</p>
               <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                ₹{summary?.netSavings?.toLocaleString('en-IN') || 0}
+                ₹{(summary?.netSavings ?? summary?.net_savings ?? 0).toLocaleString('en-IN')}
               </h3>
             </div>
             <div className="p-3 bg-blue-50 rounded-full text-blue-500">
@@ -117,7 +117,7 @@ const Dashboard = () => {
             <div>
               <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Budget Health</p>
               <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-100">
-                {summary?.budgetHealth || 'Good'}
+                {summary?.budgetHealth || (summary?.budget_used_percent !== undefined ? `${summary.budget_used_percent}% Used` : 'Good')}
               </h3>
             </div>
             <div className="p-3 bg-purple-50 rounded-full text-purple-500">
