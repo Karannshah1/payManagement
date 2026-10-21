@@ -35,7 +35,7 @@ services:
     staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_BASE_URL
-        sync: false      # Set to your backend URL: https://paymanagement-api.onrender.com
+        value: https://paymanagement.onrender.com
       - key: VITE_SUPABASE_URL
         sync: false
       - key: VITE_SUPABASE_ANON_KEY
