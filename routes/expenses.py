@@ -70,9 +70,12 @@ def get_expenses():
             'id': e.id,
             'amount': e.amount,
             'description': e.description,
-            'date': e.date.isoformat(),
+            'date': e.date.isoformat() if e.date else '',
             'category_id': e.category_id,
+            'category_name': e.category.name if e.category else 'Uncategorized',
+            'category_color': e.category.color if e.category else '#6c757d',
             'account_id': e.account_id,
+            'account_name': e.account.name if e.account else 'Default',
             'payment_method': getattr(e, 'payment_method', None)
         } for e in pagination.items]
         
@@ -88,25 +91,80 @@ def get_expenses():
 @expenses.route('/api/expenses', methods=['POST'])
 def create_expense():
     try:
-        data = request.get_json()
-        account = Account.query.get(data['account_id'])
+        data = request.get_json() or {}
+        
+        # Resolve Account: supports account_id (int) or account (name/id string)
+        account = None
+        account_val = data.get('account_id') or data.get('account')
+        if account_val:
+            try:
+                account = Account.query.get(int(account_val))
+            except (ValueError, TypeError):
+                account = Account.query.filter(Account.name.ilike(str(account_val).strip())).first()
+                if not account:
+                    account = Account(name=str(account_val).strip(), account_type='bank', balance=0.0)
+                    db.session.add(account)
+                    db.session.flush()
+
         if not account:
-            return jsonify({'error': 'Account not found'}), 404
-            
+            account = Account.query.first()
+            if not account:
+                account = Account(name='Cash', account_type='cash', balance=0.0)
+                db.session.add(account)
+                db.session.flush()
+
+        # Resolve Category: supports category_id (int) or category (name/id string)
+        category = None
+        category_val = data.get('category_id') or data.get('category')
+        if category_val:
+            try:
+                category = Category.query.get(int(category_val))
+            except (ValueError, TypeError):
+                cat_name = str(category_val).strip()
+                category = Category.query.filter(Category.name.ilike(cat_name)).first()
+                if not category:
+                    category = Category.query.filter(Category.name.ilike(f'%{cat_name}%')).first()
+                if not category:
+                    category = Category(name=cat_name, is_custom=True)
+                    db.session.add(category)
+                    db.session.flush()
+
+        if not category:
+            category = Category.query.first()
+            if not category:
+                category = Category(name='Miscellaneous', is_custom=False)
+                db.session.add(category)
+                db.session.flush()
+
+        # Parse date
+        exp_date = date.today()
+        if data.get('date'):
+            try:
+                exp_date = date.fromisoformat(str(data['date']).split('T')[0])
+            except Exception:
+                exp_date = date.today()
+
+        amount = float(data.get('amount', 0))
+
         expense = Expense(
-            amount=data['amount'],
-            description=data.get('description'),
-            date=date.fromisoformat(data['date']) if data.get('date') else date.today(),
-            category_id=data['category_id'],
-            account_id=data['account_id'],
-            payment_method=data.get('payment_method')
+            amount=amount,
+            description=data.get('description', ''),
+            date=exp_date,
+            category_id=category.id,
+            account_id=account.id,
+            payment_method=data.get('payment_method', account.account_type)
         )
         
-        account.balance -= data['amount']
+        account.balance -= amount
         db.session.add(expense)
         db.session.commit()
         
-        return jsonify({'message': 'Expense created', 'id': expense.id}), 201
+        return jsonify({
+            'message': 'Expense created',
+            'id': expense.id,
+            'category_name': category.name,
+            'account_name': account.name
+        }), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -118,23 +176,49 @@ def update_expense(id):
         if not expense:
             return jsonify({'error': 'Expense not found'}), 404
             
-        data = request.get_json()
+        data = request.get_json() or {}
         
-        # Adjust balance
+        # Adjust old account balance
         old_account = Account.query.get(expense.account_id)
-        old_account.balance += expense.amount
-        
-        expense.amount = data.get('amount', expense.amount)
-        expense.description = data.get('description', expense.description)
-        if 'date' in data:
-            expense.date = date.fromisoformat(data['date'])
-        expense.category_id = data.get('category_id', expense.category_id)
-        expense.account_id = data.get('account_id', expense.account_id)
+        if old_account:
+            old_account.balance += expense.amount
+            
+        if 'amount' in data:
+            expense.amount = float(data['amount'])
+        if 'description' in data:
+            expense.description = data['description']
+        if 'date' in data and data['date']:
+            try:
+                expense.date = date.fromisoformat(str(data['date']).split('T')[0])
+            except Exception:
+                pass
+                
+        # Resolve Category if updated
+        category_val = data.get('category_id') or data.get('category')
+        if category_val:
+            try:
+                cat = Category.query.get(int(category_val))
+            except (ValueError, TypeError):
+                cat = Category.query.filter(Category.name.ilike(str(category_val).strip())).first()
+            if cat:
+                expense.category_id = cat.id
+
+        # Resolve Account if updated
+        account_val = data.get('account_id') or data.get('account')
+        if account_val:
+            try:
+                acc = Account.query.get(int(account_val))
+            except (ValueError, TypeError):
+                acc = Account.query.filter(Account.name.ilike(str(account_val).strip())).first()
+            if acc:
+                expense.account_id = acc.id
+
         if 'payment_method' in data:
             expense.payment_method = data['payment_method']
             
         new_account = Account.query.get(expense.account_id)
-        new_account.balance -= expense.amount
+        if new_account:
+            new_account.balance -= expense.amount
         
         db.session.commit()
         return jsonify({'message': 'Expense updated'})

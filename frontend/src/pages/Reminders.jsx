@@ -27,7 +27,7 @@ const Reminders = () => {
 
     const markCompleted = async (id) => {
         try {
-            await axios.put(`http://localhost:5000/reminders/api/reminders/${id}/complete`);
+            await axios.put(`${API_BASE}/reminders/api/reminders/${id}/complete`);
             fetchReminders();
         } catch (err) {
             alert('Failed to mark as completed');

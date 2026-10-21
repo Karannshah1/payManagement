@@ -83,14 +83,28 @@ def delete_account(id):
 @accounts.route('/api/accounts/transfer', methods=['POST'])
 def transfer():
     try:
-        data = request.get_json()
-        from_acc = Account.query.get(data['from_account_id'])
-        to_acc = Account.query.get(data['to_account_id'])
+        data = request.get_json() or {}
+        from_val = data.get('from_account_id') or data.get('from_account')
+        to_val = data.get('to_account_id') or data.get('to_account')
+        
+        from_acc = None
+        to_acc = None
+        if from_val:
+            try:
+                from_acc = Account.query.get(int(from_val))
+            except (ValueError, TypeError):
+                from_acc = Account.query.filter(Account.name.ilike(str(from_val).strip())).first()
+                
+        if to_val:
+            try:
+                to_acc = Account.query.get(int(to_val))
+            except (ValueError, TypeError):
+                to_acc = Account.query.filter(Account.name.ilike(str(to_val).strip())).first()
         
         if not from_acc or not to_acc:
-            return jsonify({'error': 'Account not found'}), 404
+            return jsonify({'error': 'From or To Account not found'}), 404
             
-        amount = float(data['amount'])
+        amount = float(data.get('amount', 0))
         from_acc.balance -= amount
         to_acc.balance += amount
         
@@ -98,8 +112,8 @@ def transfer():
             from_account_id=from_acc.id,
             to_account_id=to_acc.id,
             amount=amount,
-            description=data.get('description'),
-            date=date.fromisoformat(data['date']) if data.get('date') else date.today()
+            description=data.get('description', ''),
+            date=date.fromisoformat(str(data['date']).split('T')[0]) if data.get('date') else date.today()
         )
         
         db.session.add(transfer)

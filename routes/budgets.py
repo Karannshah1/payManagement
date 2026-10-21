@@ -34,7 +34,8 @@ def get_budgets():
                 'id': b.id,
                 'category_id': b.category_id,
                 'category_name': category.name if category else 'Unknown',
-                'amount': b.amount,
+                'amount': b.limit_amount,
+                'limit': b.limit_amount,
                 'actual_spend': actual_spend,
                 'month': b.month,
                 'year': b.year
@@ -57,7 +58,7 @@ def create_or_update_budget():
             # Look up or create category by name
             category = Category.query.filter(Category.name.ilike(category_name)).first()
             if not category:
-                category = Category(name=category_name, type='expense')
+                category = Category(name=category_name, is_custom=True)
                 db.session.add(category)
                 db.session.commit()
             category_id = category.id
@@ -68,14 +69,14 @@ def create_or_update_budget():
         
         budget = Budget.query.filter_by(category_id=category_id, month=month, year=year).first()
         if budget:
-            budget.amount = amount
+            budget.limit_amount = amount
             msg = 'Budget updated'
         else:
             budget = Budget(
                 category_id=category_id,
                 month=month,
                 year=year,
-                amount=amount
+                limit_amount=amount
             )
             db.session.add(budget)
             msg = 'Budget created'

@@ -40,8 +40,9 @@ def get_income():
             'amount': i.amount,
             'source': i.source,
             'description': getattr(i, 'description', None),
-            'date': i.date.isoformat(),
-            'account_id': i.account_id
+            'date': i.date.isoformat() if i.date else '',
+            'account_id': i.account_id,
+            'account_name': i.account.name if i.account else 'Default'
         } for i in pagination.items]
         
         return jsonify({
@@ -56,24 +57,55 @@ def get_income():
 @income.route('/api/income', methods=['POST'])
 def create_income():
     try:
-        data = request.get_json()
-        account = Account.query.get(data['account_id'])
+        data = request.get_json() or {}
+        
+        # Resolve Account: supports account_id (int) or account (name/id string)
+        account = None
+        account_val = data.get('account_id') or data.get('account')
+        if account_val:
+            try:
+                account = Account.query.get(int(account_val))
+            except (ValueError, TypeError):
+                account = Account.query.filter(Account.name.ilike(str(account_val).strip())).first()
+                if not account:
+                    account = Account(name=str(account_val).strip(), account_type='bank', balance=0.0)
+                    db.session.add(account)
+                    db.session.flush()
+
         if not account:
-            return jsonify({'error': 'Account not found'}), 404
-            
+            account = Account.query.first()
+            if not account:
+                account = Account(name='Bank Account', account_type='bank', balance=0.0)
+                db.session.add(account)
+                db.session.flush()
+
+        # Parse date
+        inc_date = date.today()
+        if data.get('date'):
+            try:
+                inc_date = date.fromisoformat(str(data['date']).split('T')[0])
+            except Exception:
+                inc_date = date.today()
+
+        amount = float(data.get('amount', 0))
+
         new_income = Income(
-            amount=data['amount'],
-            source=data.get('source'),
-            description=data.get('description'),
-            date=date.fromisoformat(data['date']) if data.get('date') else date.today(),
-            account_id=data['account_id']
+            amount=amount,
+            source=data.get('source', 'Income'),
+            description=data.get('description', ''),
+            date=inc_date,
+            account_id=account.id
         )
         
-        account.balance += data['amount']
+        account.balance += amount
         db.session.add(new_income)
         db.session.commit()
         
-        return jsonify({'message': 'Income created', 'id': new_income.id}), 201
+        return jsonify({
+            'message': 'Income created',
+            'id': new_income.id,
+            'account_name': account.name
+        }), 201
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
@@ -85,22 +117,39 @@ def update_income(id):
         if not inc:
             return jsonify({'error': 'Income not found'}), 404
             
-        data = request.get_json()
+        data = request.get_json() or {}
         
+        # Revert old balance
         old_account = Account.query.get(inc.account_id)
-        old_account.balance -= inc.amount
+        if old_account:
+            old_account.balance -= inc.amount
         
-        inc.amount = data.get('amount', inc.amount)
-        inc.source = data.get('source', inc.source)
+        if 'amount' in data:
+            inc.amount = float(data['amount'])
+        if 'source' in data:
+            inc.source = data['source']
         if 'description' in data:
             inc.description = data['description']
-        if 'date' in data:
-            inc.date = date.fromisoformat(data['date'])
-        inc.account_id = data.get('account_id', inc.account_id)
-        
+        if 'date' in data and data['date']:
+            try:
+                inc.date = date.fromisoformat(str(data['date']).split('T')[0])
+            except Exception:
+                pass
+                
+        # Resolve new account if updated
+        account_val = data.get('account_id') or data.get('account')
+        if account_val:
+            try:
+                acc = Account.query.get(int(account_val))
+            except (ValueError, TypeError):
+                acc = Account.query.filter(Account.name.ilike(str(account_val).strip())).first()
+            if acc:
+                inc.account_id = acc.id
+                
         new_account = Account.query.get(inc.account_id)
-        new_account.balance += inc.amount
-        
+        if new_account:
+            new_account.balance += inc.amount
+            
         db.session.commit()
         return jsonify({'message': 'Income updated'})
     except Exception as e:

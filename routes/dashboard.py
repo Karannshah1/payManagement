@@ -55,7 +55,7 @@ def get_summary():
         transaction_count = (t_income.scalar() or 0) + (t_expense.scalar() or 0)
         
         # budget used percent
-        budgets = db.session.query(func.sum(Budget.amount)).filter(Budget.month == month, Budget.year == year).scalar() or 0
+        budgets = db.session.query(func.sum(Budget.limit_amount)).filter(Budget.month == month, Budget.year == year).scalar() or 0
         budget_used_percent = (total_expenses / budgets * 100) if budgets > 0 else 0
         
         return jsonify({
@@ -325,7 +325,7 @@ def get_predictive_insights():
         ).scalar() or 0
 
         # Get total budget this month
-        total_budget = db.session.query(func.sum(Budget.amount)).filter_by(
+        total_budget = db.session.query(func.sum(Budget.limit_amount)).filter_by(
             month=month, year=year
         ).scalar() or 0
 

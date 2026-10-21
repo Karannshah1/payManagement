@@ -49,7 +49,7 @@ const Goals = () => {
     }
 
     try {
-      await axios.post(`http://localhost:5000/goals/api/goals/${id}/contribute`, {
+      await axios.post(`${API_BASE}/goals/api/goals/${id}/contribute`, {
         amount: amount
       });
       fetchGoals();

@@ -1,16 +1,34 @@
 import API_BASE from '../config';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { UploadCloud, FileText, MessageSquare, CheckCircle2 } from 'lucide-react';
+import { UploadCloud, FileText, MessageSquare, CheckCircle2, Wallet } from 'lucide-react';
 
 const SmartImport = () => {
   const [smsText, setSmsText] = useState('');
   const [parsedData, setParsedData] = useState(null);
+  const [accounts, setAccounts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const fetchAccounts = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/accounts/api/accounts`);
+      setAccounts(res.data || []);
+      if (res.data && res.data.length > 0 && !selectedAccount) {
+        setSelectedAccount(res.data[0].id);
+      }
+    } catch (e) {
+      console.error('Error loading accounts:', e);
+    }
+  };
 
   const handleSmsSubmit = async (e) => {
     e.preventDefault();
@@ -61,14 +79,27 @@ const SmartImport = () => {
     
     setLoading(true);
     try {
-      await axios.post(`${API_BASE}/expenses/api/expenses/quick-add`, {
-        text: `${parsedData.description} ${parsedData.amount} ${parsedData.category}`
-      });
+      if (parsedData.type === 'income') {
+        await axios.post(`${API_BASE}/income/api/income`, {
+          source: parsedData.description,
+          amount: parseFloat(parsedData.amount),
+          account_id: selectedAccount,
+          date: new Date().toISOString().split('T')[0]
+        });
+      } else {
+        await axios.post(`${API_BASE}/expenses/api/expenses`, {
+          description: parsedData.description,
+          amount: parseFloat(parsedData.amount),
+          category: parsedData.category,
+          account_id: selectedAccount,
+          date: new Date().toISOString().split('T')[0]
+        });
+      }
       setSuccessMsg(`Successfully saved ${parsedData.type} to database!`);
       setParsedData(null);
       setSmsText('');
     } catch (err) {
-      setError('Failed to save to database.');
+      setError('Failed to save to database: ' + (err.response?.data?.error || err.message));
     } finally {
       setLoading(false);
     }
@@ -106,7 +137,7 @@ const SmartImport = () => {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full bg-purple-600 text-white py-2 rounded-lg font-medium hover:bg-purple-700 transition disabled:opacity-50"
+              className="w-full bg-purple-600 text-white py-2.5 rounded-lg font-medium hover:bg-purple-700 transition disabled:opacity-50 shadow-sm"
             >
               {loading ? 'AI is thinking...' : 'Extract with AI'}
             </button>
@@ -142,22 +173,40 @@ const SmartImport = () => {
 
       {parsedData && (
         <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-          <h3 className="font-medium text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-green-500" /> 
             AI Extraction Result
           </h3>
-          <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg text-sm mb-3">
+          <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg text-sm mb-4 grid grid-cols-2 gap-2">
             <p><strong>Merchant:</strong> {parsedData.description}</p>
             <p><strong>Amount:</strong> ₹{parsedData.amount}</p>
             <p><strong>Category:</strong> {parsedData.category}</p>
             <p><strong>Type:</strong> <span className="capitalize">{parsedData.type}</span></p>
           </div>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1.5">
+              <Wallet size={16} /> Link to Account
+            </label>
+            <select
+              value={selectedAccount}
+              onChange={(e) => setSelectedAccount(e.target.value)}
+              className="w-full md:w-80 border dark:border-gray-600 dark:bg-gray-700 dark:text-white p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
+            >
+              {accounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} (₹{a.balance?.toLocaleString()})
+                </option>
+              ))}
+            </select>
+          </div>
+
           <button 
             onClick={handleSaveToDatabase}
             disabled={loading}
-            className="w-full md:w-auto px-6 bg-green-600 text-white py-2 rounded-lg font-medium hover:bg-green-700 transition"
+            className="w-full md:w-auto px-6 bg-green-600 text-white py-2.5 rounded-lg font-medium hover:bg-green-700 transition shadow-sm"
           >
-            Looks Correct - Save to Database
+            Looks Correct — Save to Database
           </button>
         </div>
       )}
